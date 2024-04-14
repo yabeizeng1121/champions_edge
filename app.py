@@ -4,11 +4,15 @@ import numpy as np
 import streamlit.components.v1 as components
 import joblib
 from PIL import Image
+import sklearn
+
+im = Image.open("imgs/favicon.ico")
+st.set_page_config(
+    page_title="Champion Edge", page_icon=im, initial_sidebar_state="collapsed"
+)
 
 # Load the data
-df = pd.read_csv(
-    "/Users/Sam/Documents/Duke/Spring 2024/IDS 705/Final Project/the_real_final_df.csv"
-)
+df = pd.read_csv("data/the_real_final_df.csv")
 df = df.drop(
     columns=[
         "participantid",
@@ -27,16 +31,12 @@ df = df.drop(
         "opp_pick5",
     ]
 )
-champ_career_stats = pd.read_csv(
-    "/Users/Sam/Documents/Duke/Spring 2024/IDS 705/Final Project/champions-edge/cleaning/champ_career_stats.csv"
-)
+champ_career_stats = pd.read_csv("data/champ_career_stats.csv")
 X = df.drop(columns=["result"])
-model = joblib.load("/Users/Sam/Downloads/best_rf_model.pkl")
+model = joblib.load("model/best_rf_model.pkl")
 
 # Initiate a new dataframe for user input data
-input_data = pd.DataFrame(
-    np.zeros((1, 586), dtype=float), columns=X.columns.tolist()
-)
+input_data = pd.DataFrame(np.zeros((1, 586), dtype=float), columns=X.columns.tolist())
 
 # Get the mean values for each column
 player_stats_cols = df.columns.tolist()[2:55]
@@ -47,73 +47,82 @@ input_data[player_stats_cols] = mean_values
 
 champion_list = champ_career_stats["champion"].tolist()
 
+
 # Helper function to update input data based on user selections
 def update_input_data(input_data, selections):
     # Reset all player and opponent picks to 0
-    player_columns = [f'PlayerPick_{champ}' for champ in champion_list]
-    opponent_columns = [f'OppPick_{champ}' for champ in champion_list]
+    player_columns = [f"PlayerPick_{champ}" for champ in champion_list]
+    opponent_columns = [f"OppPick_{champ}" for champ in champion_list]
     input_data.loc[:, player_columns + opponent_columns] = 0
 
     # Update the dataframe to set selected champions to 1
-    for champ in selections['player']:
-        column_name = f'PlayerPick_{champ}'
+    for champ in selections["player"]:
+        column_name = f"PlayerPick_{champ}"
         input_data.loc[:, column_name] = 1
-    
-    for champ in selections['opponent']:
-        column_name = f'OppPick_{champ}'
+
+    for champ in selections["opponent"]:
+        column_name = f"OppPick_{champ}"
         input_data.loc[:, column_name] = 1
-    
+
     return input_data
+
 
 # Helper function to update champion stats based on user selections
 def update_champion_stats(input_data, champ_career_stats, champion1):
     # Extract the row corresponding to champion1's career stats
-    champ_stats = champ_career_stats.loc[champ_career_stats['champion'] == champion1].drop(
-    "champion", axis=1
-)
+    champ_stats = champ_career_stats.loc[
+        champ_career_stats["champion"] == champion1
+    ].drop("champion", axis=1)
     # Update the input data with the selected champion's stats
     input_data.loc[:, champ_stats.columns] = champ_stats.values[0]
     return input_data
+
 
 # Helper function to get a list of champions that have not been selected
 def get_available_champions(picked_champs, all_champs):
     return list(set(all_champs) - set(picked_champs))
 
+
 # Helper function to update input data with picks
 def update_input_data_with_picks(input_data, team_picks, opponent_picks):
     for pick in team_picks:
-        input_data[f'PlayerPick_{pick}'] = 1
+        input_data[f"PlayerPick_{pick}"] = 1
     for pick in opponent_picks:
-        input_data[f'OppPick_{pick}'] = 1
+        input_data[f"OppPick_{pick}"] = 1
     return input_data
+
 
 # Helper function to prepare the input data with current picks and the new champion
 def make_prediction_for_champion(champion, input_data, team_picks, opponent_picks):
-    input_data_updated = update_input_data_with_picks(input_data.copy(), team_picks, opponent_picks)
+    input_data_updated = update_input_data_with_picks(
+        input_data.copy(), team_picks, opponent_picks
+    )
     # Set the new champion as the team's pick
-    input_data_updated[f'PlayerPick_{champion}'] = 1
-    input_data_updated = update_champion_stats(input_data_updated, champ_career_stats, champion)
+    input_data_updated[f"PlayerPick_{champion}"] = 1
+    input_data_updated = update_champion_stats(
+        input_data_updated, champ_career_stats, champion
+    )
     return model.predict_proba(input_data_updated)[:, 1][0]
+
 
 # Helper function to recommend champions
 def recommend_champions(input_data, all_champions, team_picks, opponent_picks):
-    available_champions = get_available_champions(team_picks + opponent_picks, all_champions)
+    available_champions = get_available_champions(
+        team_picks + opponent_picks, all_champions
+    )
     champion_recommendations = []
 
     # Predict win rate for all available champions
     for champion in available_champions:
-        win_rate = make_prediction_for_champion(champion, input_data, team_picks, opponent_picks)
+        win_rate = make_prediction_for_champion(
+            champion, input_data, team_picks, opponent_picks
+        )
         champion_recommendations.append((champion, win_rate))
 
     # Sort champions based on the predicted win rate and take the top three
     champion_recommendations.sort(key=lambda x: x[1], reverse=True)
     return champion_recommendations[:5]
 
-
-im = Image.open("imgs/favicon.ico")
-st.set_page_config(
-    page_title="Champion Edge", page_icon=im, initial_sidebar_state="collapsed"
-)
 
 tab1, tab2, tab3 = st.tabs(["Intro", "Winning Prediction", "Champion Recommendation"])
 
@@ -140,20 +149,20 @@ with tab1:
         Strap in as we embark on a quest to outsmart the opposition, armed with data-driven insights and strategic recommendations. Whether you're climbing solo queue or teaming up for flex, ChampionEdge is your guide to making informed choices that turn the tide of battle in your favor. 
         Ready for a smarter way to play, combining strategy with a hint of Teemo’s cunning? ChampionEdge is here to lead the charge. Let’s dive into the Rift, champions - victory awaits with every smart pick!
         """
-        st.markdown(f'<p class="custom-text">{intro_text}</p>', unsafe_allow_html=True)
+        st.markdown(f'<p class="custom-text">{intro_text}</p >', unsafe_allow_html=True)
         audio_file = open("audio/song.mp3", "rb")
         audio_bytes = audio_file.read()
         st.audio(audio_bytes, format="audio/mpeg")
 
     st.subheader("| Developer")
     st.markdown(
-        '<p class="custom-text">Thanks to our amazing Pangolin team </p>',
+        '<p class="custom-text">Thanks to our amazing Pangolin team </p >',
         unsafe_allow_html=True,
     )
 
     st.subheader("| Github")
     st.markdown(
-        '<p class="custom-text">This site is based on <a href="https://github.com/TomJohnH/streamlit-dungeon" style="color: #9c9d9f;">GitHub</a>. Edit your levels with <a href="https://dungeon-editor.streamlit.app/" style="color: #9c9d9f;">The Dungeon editor</a>.</p>',
+        '<p class="custom-text">This site is based on <a href=" " style="color: #9c9d9f;">GitHub</a >. Edit your levels with <a href="https://dungeon-editor.streamlit.app/" style="color: #9c9d9f;">The Dungeon editor</a >.</p >',
         unsafe_allow_html=True,
     )
 
@@ -176,18 +185,20 @@ with tab2:
     if st.button("Predict Winning Rate"):
         # Get user's champion selections
         selections = {
-            'player': [
-                champion1, champion2, champion3, champion4, champion5
+            "player": [champion1, champion2, champion3, champion4, champion5],
+            "opponent": [
+                champion_op_1,
+                champion_op_2,
+                champion_op_3,
+                champion_op_4,
+                champion_op_5,
             ],
-            'opponent': [
-                champion_op_1, champion_op_2, champion_op_3, champion_op_4, champion_op_5
-            ]
         }
-    
+
         # Update the input data
         input_data = update_input_data(input_data, selections)
         input_data = update_champion_stats(input_data, champ_career_stats, champion1)
-        
+
         # Predict the winning rate
         winning_rate = model.predict_proba(input_data)[:, 1][0]
         winning_rate_percent = "{:.2%}".format(winning_rate)
@@ -227,7 +238,9 @@ with tab3:
     # Predict button
     if st.button("Find your best champion"):
         # Use the functions to get the top three recommended champions
-        top_three_champions = recommend_champions(input_data, champion_list, team_picks, opponent_picks)
+        top_three_champions = recommend_champions(
+            input_data, champion_list, team_picks, opponent_picks
+        )
 
         # Display the predicted winning rate within a chatbox style
         col1, col2 = st.columns([1, 5], gap="small")
@@ -237,8 +250,10 @@ with tab3:
 
         # Iterate over the top three champions and display them
         for idx, (champ, rate) in enumerate(top_three_champions, start=1):
-            win_rate_percent = "{:.2%}".format(rate)  # Format as percentage with two decimals
-            
+            win_rate_percent = "{:.2%}".format(
+                rate
+            )  # Format as percentage with two decimals
+
             # Render the champion and its win rate in Streamlit's markdown
             with col2:
                 st.markdown(
