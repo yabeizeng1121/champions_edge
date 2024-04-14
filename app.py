@@ -2,7 +2,113 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import streamlit.components.v1 as components
+import joblib
 from PIL import Image
+
+# Load the data
+df = pd.read_csv(
+    "/Users/Sam/Documents/Duke/Spring 2024/IDS 705/Final Project/the_real_final_df.csv"
+)
+df = df.drop(
+    columns=[
+        "participantid",
+        "gameid",
+        "champion",
+        "playerid",
+        "side",
+        "pick2",
+        "pick3",
+        "pick4",
+        "pick5",
+        "opp_pick1",
+        "opp_pick2",
+        "opp_pick3",
+        "opp_pick4",
+        "opp_pick5",
+    ]
+)
+champ_career_stats = pd.read_csv(
+    "/Users/Sam/Documents/Duke/Spring 2024/IDS 705/Final Project/champions-edge/cleaning/champ_career_stats.csv"
+)
+X = df.drop(columns=["result"])
+model = joblib.load("/Users/Sam/Downloads/best_rf_model.pkl")
+
+# Initiate a new dataframe for user input data
+input_data = pd.DataFrame(
+    np.zeros((1, 586), dtype=float), columns=X.columns.tolist()
+)
+
+# Get the mean values for each column
+player_stats_cols = df.columns.tolist()[2:55]
+mean_values = df[player_stats_cols].mean().values
+
+# Set the mean values for the user input data
+input_data[player_stats_cols] = mean_values
+
+champion_list = champ_career_stats["champion"].tolist()
+
+# Helper function to update input data based on user selections
+def update_input_data(input_data, selections):
+    # Reset all player and opponent picks to 0
+    player_columns = [f'PlayerPick_{champ}' for champ in champion_list]
+    opponent_columns = [f'OppPick_{champ}' for champ in champion_list]
+    input_data.loc[:, player_columns + opponent_columns] = 0
+
+    # Update the dataframe to set selected champions to 1
+    for champ in selections['player']:
+        column_name = f'PlayerPick_{champ}'
+        input_data.loc[:, column_name] = 1
+    
+    for champ in selections['opponent']:
+        column_name = f'OppPick_{champ}'
+        input_data.loc[:, column_name] = 1
+    
+    return input_data
+
+# Helper function to update champion stats based on user selections
+def update_champion_stats(input_data, champ_career_stats, champion1):
+    # Extract the row corresponding to champion1's career stats
+    champ_stats = champ_career_stats.loc[champ_career_stats['champion'] == champion1].drop(
+    "champion", axis=1
+)
+    # Update the input data with the selected champion's stats
+    input_data.loc[:, champ_stats.columns] = champ_stats.values[0]
+    return input_data
+
+# Helper function to get a list of champions that have not been selected
+def get_available_champions(picked_champs, all_champs):
+    return list(set(all_champs) - set(picked_champs))
+
+# Helper function to update input data with picks
+def update_input_data_with_picks(input_data, team_picks, opponent_picks):
+    for pick in team_picks:
+        input_data[f'PlayerPick_{pick}'] = 1
+    for pick in opponent_picks:
+        input_data[f'OppPick_{pick}'] = 1
+    return input_data
+
+# Helper function to prepare the input data with current picks and the new champion
+def make_prediction_for_champion(champion, input_data, team_picks, opponent_picks):
+    input_data_updated = update_input_data_with_picks(input_data.copy(), team_picks, opponent_picks)
+    # Set the new champion as the team's pick
+    input_data_updated[f'PlayerPick_{champion}'] = 1
+    input_data_updated = update_champion_stats(input_data_updated, champ_career_stats, champion)
+    return model.predict_proba(input_data_updated)[:, 1][0]
+
+# Helper function to recommend champions
+def recommend_champions(input_data, all_champions, team_picks, opponent_picks):
+    available_champions = get_available_champions(team_picks + opponent_picks, all_champions)
+    champion_recommendations = []
+
+    # Predict win rate for all available champions
+    for champion in available_champions:
+        win_rate = make_prediction_for_champion(champion, input_data, team_picks, opponent_picks)
+        champion_recommendations.append((champion, win_rate))
+
+    # Sort champions based on the predicted win rate and take the top three
+    champion_recommendations.sort(key=lambda x: x[1], reverse=True)
+    return champion_recommendations[:5]
+
 
 im = Image.open("imgs/favicon.ico")
 st.set_page_config(
@@ -21,174 +127,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-champion_list = [
-    "Ahri",
-    "Akali",
-    "Alistar",
-    "Amumu",
-    "Anivia",
-    "Annie",
-    "Ashe",
-    "Azir,Akshan",
-    "Aurelion sol",
-    "Aphelios",
-    "Aphelios",
-    "Blitzcrank",
-    "Brand",
-    "Braum",
-    "Bard",
-    "Belveth",
-    "Briar",
-    "Caitlyn",
-    "Cassiopeia",
-    "Cho'Gath",
-    "Corki",
-    "Camille",
-    "Darius",
-    "Diana",
-    "Dr. Mundo",
-    "Draven",
-    "Elise",
-    "Evelynn",
-    "Ekko",
-    "Ezreal",
-    "Fiddlesticks",
-    "Fiora",
-    "Fizz",
-    "Galio",
-    "Gangplank",
-    "Garen",
-    "Gnar",
-    "Gragas",
-    "Graves",
-    "Gwen",
-    "Hecarim",
-    "Heimerdinger",
-    "Hwei",
-    "Irelia",
-    "Illaoi",
-    "Ivern",
-    "Janna",
-    "Jarvan IV",
-    "Jax",
-    "Jayce",
-    "Jinx",
-    "Jhin",
-    "Kalista",
-    "Karma",
-    "Karthus",
-    "Kassadin",
-    "Katarina",
-    "Kindred",
-    "Kayle",
-    "Kennen",
-    "Kha'Zix",
-    "Kog'Maw",
-    "Kled",
-    "Kayn",
-    "Kai'sa",
-    "K’Sante",
-    "LeBlanc",
-    "Lee Sin",
-    "Leona",
-    "Lissandra",
-    "Lucian",
-    "Lulu",
-    "Lux",
-    "Lillia",
-    "Malphite",
-    "Malzahar",
-    "Maokai",
-    "Master Yi",
-    "Milio",
-    "Miss Fortune",
-    "Mordekaiser",
-    "Morgana",
-    "Naafiri",
-    "Nami",
-    "Nasus",
-    "Nautilus",
-    "Nidalee",
-    "Nocturne",
-    "Nunu",
-    "Nilah",
-    "Neeko",
-    "Olaf",
-    "Orianna",
-    "Ornn",
-    "Pantheon",
-    "Poppy",
-    "Pyke",
-    "Quinn",
-    "Qiyana",
-    "Rammus",
-    "Rek'Sai",
-    "Renekton",
-    "Rengar",
-    "Riven",
-    "Rumble",
-    "Ryze",
-    "Renata",
-    "Rell",
-    "Rakan",
-    "Sejuani",
-    "Shaco",
-    "Shen",
-    "Shyvana",
-    "Singed",
-    "Sion",
-    "Sivir",
-    "Skarner",
-    "Sona",
-    "Soraka",
-    "Swain",
-    "Syndra",
-    "Senna",
-    "Sett",
-    "Samira",
-    "Seraphine",
-    "Smolder",
-    "Sylas",
-    "Talon",
-    "Taric",
-    "Teemo",
-    "Thresh",
-    "Tristana",
-    "Trundle",
-    "Tryndamere",
-    "Twisted Fate",
-    "Twitch",
-    "Tahm kench",
-    "Taliyah",
-    "Udyr",
-    "Urgot",
-    "Varus",
-    "Vayne",
-    "Veigar",
-    "Vel'Koz",
-    "Vi",
-    "Viktor",
-    "Vladimir",
-    "Volibear",
-    "Vex",
-    "Viego",
-    "Warwick",
-    "Wukong",
-    "Xerath",
-    "Xin Zhao",
-    "Xayah",
-    "Yasuo",
-    "Yorick",
-    "Yuumi",
-    "Yone",
-    "Zac",
-    "Zed",
-    "Ziggs",
-    "Zilean",
-    "Zyra",
-    "Zeri",
-    "Zoe",
-]
 with tab1:
     st.subheader("| Intro")
     col1, col2 = st.columns(2, gap="small")
@@ -236,8 +174,23 @@ with tab2:
 
     # Predict button
     if st.button("Predict Winning Rate"):
-        # Placeholder for the winning rate
-        winning_rate = "60%"
+        # Get user's champion selections
+        selections = {
+            'player': [
+                champion1, champion2, champion3, champion4, champion5
+            ],
+            'opponent': [
+                champion_op_1, champion_op_2, champion_op_3, champion_op_4, champion_op_5
+            ]
+        }
+    
+        # Update the input data
+        input_data = update_input_data(input_data, selections)
+        input_data = update_champion_stats(input_data, champ_career_stats, champion1)
+        
+        # Predict the winning rate
+        winning_rate = model.predict_proba(input_data)[:, 1][0]
+        winning_rate_percent = "{:.2%}".format(winning_rate)
 
         # Display the predicted winning rate within a chatbox style
         col1, col2 = st.columns([1, 5], gap="small")
@@ -249,7 +202,7 @@ with tab2:
             st.markdown(
                 f"""
                 <div style="background-color: #f0f2f6; padding: 10px; border-radius: 10px; color: #333333;">
-                Your winning rate with is {winning_rate}
+                Your winning rate is {winning_rate_percent}
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -268,11 +221,13 @@ with tab3:
     oppo_champ3 = st.selectbox("Choose opponent's champion 3:", champion_list)
     oppo_champ4 = st.selectbox("Choose opponent's champion 4:", champion_list)
     oppo_champ5 = st.selectbox("Choose opponent's champion 5:", champion_list)
+    team_picks = [team_champ2, team_champ3, team_champ4, team_champ5]
+    opponent_picks = [oppo_champ1, oppo_champ2, oppo_champ3, oppo_champ4, oppo_champ5]
 
     # Predict button
     if st.button("Find your best champion"):
-        # Placeholder for the winning rate
-        winning_rate = "60%"
+        # Use the functions to get the top three recommended champions
+        top_three_champions = recommend_champions(input_data, champion_list, team_picks, opponent_picks)
 
         # Display the predicted winning rate within a chatbox style
         col1, col2 = st.columns([1, 5], gap="small")
@@ -280,12 +235,17 @@ with tab3:
         with col1:
             st.image("imgs/teemo.png", width=50)  # Adjust width as needed
 
-        with col2:
-            st.markdown(
-                f"""
-                <div style="background-color: #f0f2f6; padding: 10px; border-radius: 10px; color: #333333;">
-                Pick Teemo of course!
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        # Iterate over the top three champions and display them
+        for idx, (champ, rate) in enumerate(top_three_champions, start=1):
+            win_rate_percent = "{:.2%}".format(rate)  # Format as percentage with two decimals
+            
+            # Render the champion and its win rate in Streamlit's markdown
+            with col2:
+                st.markdown(
+                    f"""
+                    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 10px; color: #333333;">
+                    <b>Option {idx}:</b> Pick <b>{champ}</b> for an estimated win rate of <b>{win_rate_percent}</b>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
