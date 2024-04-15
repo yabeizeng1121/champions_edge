@@ -170,17 +170,48 @@ with tab1:
 with tab2:
     st.subheader("| Winning Predictor")
     # Champion selection dropdown
-    champion1 = st.selectbox("Choose your champion 1:", champion_list)
-    champion2 = st.selectbox("Choose your champion 2:", champion_list)
-    champion3 = st.selectbox("Choose your champion 3:", champion_list)
-    champion4 = st.selectbox("Choose your champion 4:", champion_list)
-    champion5 = st.selectbox("Choose your champion 5:", champion_list)
-    champion_op_1 = st.selectbox("Choose your opponent's champion 1:", champion_list)
-    champion_op_2 = st.selectbox("Choose your opponent's champion 2:", champion_list)
-    champion_op_3 = st.selectbox("Choose your opponent's champion 3:", champion_list)
-    champion_op_4 = st.selectbox("Choose your opponent's champion 4:", champion_list)
-    champion_op_5 = st.selectbox("Choose your opponent's champion 5:", champion_list)
-
+    champion1 = st.selectbox(
+        "Choose your champion 1:", champion_list, index=champion_list.index("Wukong")
+    )
+    champion2 = st.selectbox(
+        "Choose your champion 2:", champion_list, index=champion_list.index("Darius")
+    )
+    champion3 = st.selectbox(
+        "Choose your champion 3:", champion_list, index=champion_list.index("Rengar")
+    )
+    champion4 = st.selectbox(
+        "Choose your champion 4:",
+        champion_list,
+        index=champion_list.index("Twisted Fate"),
+    )
+    champion5 = st.selectbox(
+        "Choose your champion 5:", champion_list, index=champion_list.index("Kai'Sa")
+    )
+    champion_op_1 = st.selectbox(
+        "Choose your opponent's champion 1:",
+        champion_list,
+        index=champion_list.index("Garen"),
+    )
+    champion_op_2 = st.selectbox(
+        "Choose your opponent's champion 2:",
+        champion_list,
+        index=champion_list.index("Master Yi"),
+    )
+    champion_op_3 = st.selectbox(
+        "Choose your opponent's champion 3:",
+        champion_list,
+        index=champion_list.index("Lux"),
+    )
+    champion_op_4 = st.selectbox(
+        "Choose your opponent's champion 4:",
+        champion_list,
+        index=champion_list.index("Ashe"),
+    )
+    champion_op_5 = st.selectbox(
+        "Choose your opponent's champion 5:",
+        champion_list,
+        index=champion_list.index("Lulu"),
+    )
     # Predict button
     if st.button("Predict Winning Rate"):
         # Get user's champion selections
@@ -223,15 +254,49 @@ with tab2:
 with tab3:
     st.subheader("| Champion Recommendation")
     # Champion selection dropdown
-    team_champ2 = st.selectbox("Choose your team champion 1:", champion_list)
-    team_champ3 = st.selectbox("Choose your team champion 2:", champion_list)
-    team_champ4 = st.selectbox("Choose your team champion 3:", champion_list)
-    team_champ5 = st.selectbox("Choose your team champion 4:", champion_list)
-    oppo_champ1 = st.selectbox("Choose opponent's champion 1:", champion_list)
-    oppo_champ2 = st.selectbox("Choose opponent's champion 2:", champion_list)
-    oppo_champ3 = st.selectbox("Choose opponent's champion 3:", champion_list)
-    oppo_champ4 = st.selectbox("Choose opponent's champion 4:", champion_list)
-    oppo_champ5 = st.selectbox("Choose opponent's champion 5:", champion_list)
+    team_champ2 = st.selectbox(
+        "Choose your team champion 1:",
+        champion_list,
+        index=champion_list.index("Darius"),
+    )
+    team_champ3 = st.selectbox(
+        "Choose your team champion 2:",
+        champion_list,
+        index=champion_list.index("Rengar"),
+    )
+    team_champ4 = st.selectbox(
+        "Choose your team champion 3:",
+        champion_list,
+        index=champion_list.index("Twisted Fate"),
+    )
+    team_champ5 = st.selectbox(
+        "Choose your team champion 4:",
+        champion_list,
+        index=champion_list.index("Kai'Sa"),
+    )
+    oppo_champ1 = st.selectbox(
+        "Choose opponent's champion 1:",
+        champion_list,
+        index=champion_list.index("Garen"),
+    )
+    oppo_champ2 = st.selectbox(
+        "Choose opponent's champion 2:",
+        champion_list,
+        index=champion_list.index("Master Yi"),
+    )
+    oppo_champ3 = st.selectbox(
+        "Choose opponent's champion 3:", champion_list, index=champion_list.index("Lux")
+    )
+    oppo_champ4 = st.selectbox(
+        "Choose opponent's champion 4:",
+        champion_list,
+        index=champion_list.index("Ashe"),
+    )
+    oppo_champ5 = st.selectbox(
+        "Choose opponent's champion 5:",
+        champion_list,
+        index=champion_list.index("Lulu"),
+    )
     team_picks = [team_champ2, team_champ3, team_champ4, team_champ5]
     opponent_picks = [oppo_champ1, oppo_champ2, oppo_champ3, oppo_champ4, oppo_champ5]
 
